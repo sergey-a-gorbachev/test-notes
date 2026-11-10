@@ -9,12 +9,13 @@ use App\Domain\Repository\NoteRepositoryInterface;
 
 final readonly class DeleteNote
 {
-    public function __construct(private NoteRepositoryInterface $notes) {}
-
-    public function __invoke(int $id): void
+    public function __construct(private NoteRepositoryInterface $notes)
     {
-        if (!$this->notes->delete($id)) {
-            throw new NoteNotFoundException($id);
-        }
+    }
+
+    public function __invoke(int $id, int $expectedVersion): void
+    {
+        $note = $this->notes->find($id) ?? throw new NoteNotFoundException($id);
+        $this->notes->delete($note, $expectedVersion);
     }
 }

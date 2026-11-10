@@ -10,7 +10,9 @@ use App\Domain\Repository\NoteRepositoryInterface;
 
 final readonly class CreateNote
 {
-    public function __construct(private NoteRepositoryInterface $notes) {}
+    public function __construct(private NoteRepositoryInterface $notes)
+    {
+    }
 
     public function __invoke(CreateNoteRequest $request): NoteResponse
     {

@@ -11,12 +11,18 @@ use OpenApi\Attributes as OA;
 final readonly class NoteResponse
 {
     public function __construct(
-        #[OA\Property(description: 'Идентификатор заметки.', example: 1)] public int $id,
-        #[OA\Property(description: 'Название заметки.', example: 'Список покупок')] public string $title,
-        #[OA\Property(description: 'Содержимое заметки.', example: 'Молоко и хлеб')] public string $content,
-        #[OA\Property(property: 'created_at', description: 'Дата создания.', format: 'date-time')] public string $created_at,
-        #[OA\Property(property: 'updated_at', description: 'Дата последнего изменения.', format: 'date-time')] public string $updated_at,
-        #[OA\Property(description: 'Версия заметки.', example: 1)] public int $version,
+        #[OA\Property(description: 'Идентификатор заметки.', example: 1)]
+        public int $id,
+        #[OA\Property(description: 'Название заметки.', example: 'Список покупок')]
+        public string $title,
+        #[OA\Property(description: 'Содержимое заметки.', example: 'Молоко и хлеб')]
+        public string $content,
+        #[OA\Property(property: 'created_at', description: 'Дата создания.', format: 'date-time')]
+        public string $created_at,
+        #[OA\Property(property: 'updated_at', description: 'Дата последнего изменения.', format: 'date-time')]
+        public string $updated_at,
+        #[OA\Property(description: 'Версия заметки.', example: 1)]
+        public int $version,
     ) {
     }
 

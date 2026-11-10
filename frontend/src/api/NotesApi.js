@@ -20,7 +20,10 @@ export class NotesApi {
     return this.client.request(`${this.endpoint}/${id}`, {method: 'PUT', body: note});
   }
 
-  remove(id) {
-    return this.client.request(`${this.endpoint}/${id}`, {method: 'DELETE'});
+  remove(id, version) {
+    return this.client.request(`${this.endpoint}/${id}`, {
+      method: 'DELETE',
+      headers: {'If-Match': `"${version}"`},
+    });
   }
 }

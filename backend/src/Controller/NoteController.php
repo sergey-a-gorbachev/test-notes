@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Application\Dto\CreateNoteRequest;
 use App\Application\Dto\ErrorResponse;
 use App\Application\Dto\NoteListResponse;
-use App\Application\Dto\CreateNoteRequest;
 use App\Application\Dto\NoteResponse;
 use App\Application\Dto\UpdateNoteRequest;
 use App\Application\UseCase\CreateNote;
@@ -17,8 +17,11 @@ use App\Application\UseCase\UpdateNote;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\PreconditionRequiredHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 
@@ -29,13 +32,19 @@ final readonly class NoteController
     #[Route('', name: 'index', methods: ['GET'])]
     #[OA\Get(summary: 'Получить список заметок', description: 'Возвращает все заметки, начиная с недавно изменённых.')]
     #[OA\Response(response: 200, description: 'Список заметок получен.', content: new Model(type: NoteListResponse::class))]
-    public function index(ListNotes $useCase): JsonResponse { return new JsonResponse($useCase()); }
+    public function index(ListNotes $useCase): JsonResponse
+    {
+        return new JsonResponse($useCase());
+    }
 
     #[Route('/{id}', name: 'show', requirements: ['id' => '\d+'], methods: ['GET'])]
     #[OA\Get(summary: 'Получить заметку', description: 'Возвращает заметку с указанным идентификатором.')]
     #[OA\Response(response: 200, description: 'Заметка получена.', content: new Model(type: NoteResponse::class))]
     #[OA\Response(response: 404, description: 'Заметка не найдена.', content: new Model(type: ErrorResponse::class))]
-    public function show(int $id, GetNote $useCase): JsonResponse { return new JsonResponse($useCase($id)); }
+    public function show(int $id, GetNote $useCase): JsonResponse
+    {
+        return new JsonResponse($useCase($id));
+    }
 
     #[Route('', name: 'create', methods: ['POST'])]
     #[OA\Post(summary: 'Создать заметку', description: 'Создаёт заметку и возвращает её с присвоенным идентификатором.')]
@@ -43,7 +52,8 @@ final readonly class NoteController
     #[OA\Response(response: 400, description: 'Некорректное тело запроса.', content: new Model(type: ErrorResponse::class))]
     #[OA\Response(response: 422, description: 'Поля не прошли проверку.', content: new Model(type: ErrorResponse::class))]
     public function create(
-        #[MapRequestPayload(acceptFormat: 'json', serializationContext: [AbstractNormalizer::ALLOW_EXTRA_ATTRIBUTES => false])] CreateNoteRequest $request,
+        #[MapRequestPayload(acceptFormat: 'json', serializationContext: [AbstractNormalizer::ALLOW_EXTRA_ATTRIBUTES => false])]
+        CreateNoteRequest $request,
         CreateNote $useCase,
     ): JsonResponse {
         $note = $useCase($request);
@@ -59,17 +69,37 @@ final readonly class NoteController
     #[OA\Response(response: 422, description: 'Поля не прошли проверку.', content: new Model(type: ErrorResponse::class))]
     public function update(
         int $id,
-        #[MapRequestPayload(acceptFormat: 'json', serializationContext: [AbstractNormalizer::ALLOW_EXTRA_ATTRIBUTES => false])] UpdateNoteRequest $request,
+        #[MapRequestPayload(acceptFormat: 'json', serializationContext: [AbstractNormalizer::ALLOW_EXTRA_ATTRIBUTES => false])]
+        UpdateNoteRequest $request,
         UpdateNote $useCase,
-    ): JsonResponse { return new JsonResponse($useCase($id, $request)); }
+    ): JsonResponse {
+        return new JsonResponse($useCase($id, $request));
+    }
 
     #[Route('/{id}', name: 'delete', requirements: ['id' => '\d+'], methods: ['DELETE'])]
     #[OA\Delete(summary: 'Удалить заметку', description: 'Удаляет заметку с указанным идентификатором.')]
+    #[OA\Parameter(
+        name: 'If-Match',
+        description: 'Текущая версия заметки, например "2".',
+        in: 'header',
+        required: true,
+        schema: new OA\Schema(type: 'string', pattern: '^(?:W/)?"?[1-9]\\d*"?$'),
+    )]
     #[OA\Response(response: 204, description: 'Заметка удалена.')]
     #[OA\Response(response: 404, description: 'Заметка не найдена.', content: new Model(type: ErrorResponse::class))]
-    public function delete(int $id, DeleteNote $useCase): Response
+    #[OA\Response(response: 409, description: 'Версия заметки устарела.', content: new Model(type: ErrorResponse::class))]
+    #[OA\Response(response: 428, description: 'Не указан заголовок If-Match.', content: new Model(type: ErrorResponse::class))]
+    public function delete(int $id, Request $request, DeleteNote $useCase): Response
     {
-        $useCase($id);
+        $ifMatch = $request->headers->get('If-Match');
+        if ($ifMatch === null) {
+            throw new PreconditionRequiredHttpException('Для удаления укажите текущую версию в заголовке If-Match.');
+        }
+        if (preg_match('/^(?:W\/)?"?([1-9]\d*)"?$/', trim($ifMatch), $matches) !== 1) {
+            throw new BadRequestHttpException('Заголовок If-Match должен содержать положительный номер версии.');
+        }
+
+        $useCase($id, (int) $matches[1]);
         return new Response(status: Response::HTTP_NO_CONTENT);
     }
 }

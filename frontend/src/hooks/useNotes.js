@@ -59,8 +59,8 @@ export function useNotes() {
     if (mounted.current) setNotes((current) => [updated, ...current.filter((item) => item.id !== id)]);
     return {note: updated, syncError: await synchronize()};
   };
-  const deleteNote = async (id) => {
-    await notesApi.remove(id);
+  const deleteNote = async (id, version) => {
+    await notesApi.remove(id, version);
     if (mounted.current) setNotes((current) => current.filter((item) => item.id !== id));
     return {syncError: await synchronize()};
   };

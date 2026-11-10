@@ -8,6 +8,7 @@ use App\Domain\Model\Note;
 
 interface NoteRepositoryInterface
 {
+    /** @return list<Note> */
     public function findAll(): array;
 
     public function find(int $id): ?Note;
@@ -16,5 +17,5 @@ interface NoteRepositoryInterface
 
     public function update(Note $note, string $title, string $content, int $expectedVersion): Note;
 
-    public function delete(int $id): bool;
+    public function delete(Note $note, int $expectedVersion): void;
 }

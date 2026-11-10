@@ -9,6 +9,9 @@ use OpenApi\Attributes as OA;
 #[OA\Schema(description: 'Ошибка выполнения запроса.')]
 final readonly class ErrorResponse
 {
+    /**
+     * @param list<array{field: string, message: string}> $violations
+     */
     public function __construct(
         #[OA\Property(example: 'Проверка данных не пройдена.')]
         public string $error,

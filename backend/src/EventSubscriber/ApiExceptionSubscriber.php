@@ -45,7 +45,9 @@ final class ApiExceptionSubscriber
         $validation = $exception instanceof HttpExceptionInterface ? $exception->getPrevious() : null;
         if ($validation instanceof ValidationFailedException) {
             $violations = [];
-            foreach ($validation->getViolations() as $violation) $violations[] = ['field' => $violation->getPropertyPath(), 'message' => $violation->getMessage()];
+            foreach ($validation->getViolations() as $violation) {
+                $violations[] = ['field' => $violation->getPropertyPath(), 'message' => $violation->getMessage()];
+            }
             $event->setResponse(new JsonResponse(['error' => 'Проверка данных не пройдена.', 'violations' => $violations], Response::HTTP_UNPROCESSABLE_ENTITY));
             return;
         }
@@ -56,7 +58,11 @@ final class ApiExceptionSubscriber
                 Response::HTTP_NOT_FOUND => 'Ресурс не найден.',
                 Response::HTTP_METHOD_NOT_ALLOWED => 'Метод не поддерживается.',
                 Response::HTTP_UNSUPPORTED_MEDIA_TYPE => 'Неподдерживаемый тип содержимого.',
+                Response::HTTP_PRECONDITION_REQUIRED => 'Для операции необходимо указать актуальную версию.',
             ];
+            if ($status === Response::HTTP_BAD_REQUEST && str_contains($exception->getMessage(), 'If-Match')) {
+                $messages[$status] = $exception->getMessage();
+            }
             $event->setResponse(new JsonResponse(
                 ['error' => $messages[$status] ?? 'Не удалось выполнить запрос.'],
                 $status,

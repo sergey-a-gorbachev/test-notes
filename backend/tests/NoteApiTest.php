@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Tests;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\NullOutput;
 
@@ -56,10 +56,11 @@ final class NoteApiTest extends WebTestCase
 
         $client->jsonRequest('PUT', '/api/notes/'.$id, ['title' => 'Updated', 'content' => 'Changed', 'version' => $created['version']]);
         self::assertResponseIsSuccessful();
-        self::assertSame('Updated', $this->json()['title']);
-        self::assertSame('Changed', $this->json()['content']);
+        $updated = $this->json();
+        self::assertSame('Updated', $updated['title']);
+        self::assertSame('Changed', $updated['content']);
 
-        $client->request('DELETE', '/api/notes/'.$id);
+        $client->request('DELETE', '/api/notes/'.$id, server: ['HTTP_IF_MATCH' => '"'.$updated['version'].'"']);
         self::assertResponseStatusCodeSame(204);
         self::assertSame('', $client->getResponse()->getContent());
 
@@ -128,7 +129,9 @@ final class NoteApiTest extends WebTestCase
 
         foreach ([null, 0, -1, '1'] as $version) {
             $payload = ['title' => 'Changed', 'content' => 'text'];
-            if ($version !== null) $payload['version'] = $version;
+            if ($version !== null) {
+                $payload['version'] = $version;
+            }
             $client->jsonRequest('PUT', '/api/notes/'.$created['id'], $payload);
             self::assertResponseStatusCodeSame(422);
         }
@@ -148,7 +151,6 @@ final class NoteApiTest extends WebTestCase
         $client->jsonRequest('POST', '/api/notes', ['title' => 'First']);
         $first = $this->json();
         $client->jsonRequest('POST', '/api/notes', ['title' => 'Second']);
-        sleep(1); // SQLite хранит значения Doctrine DATETIME с точностью до секунды.
         $client->jsonRequest('PUT', '/api/notes/'.$first['id'], [
             'title' => 'First updated', 'content' => '', 'version' => $first['version'],
         ]);
@@ -188,7 +190,7 @@ final class NoteApiTest extends WebTestCase
         $client->jsonRequest('PUT', '/api/notes/99999', ['title' => 'hello', 'content' => '', 'version' => 1]);
         self::assertResponseStatusCodeSame(404);
 
-        $client->request('DELETE', '/api/notes/99999');
+        $client->request('DELETE', '/api/notes/99999', server: ['HTTP_IF_MATCH' => '"1"']);
         self::assertResponseStatusCodeSame(404);
     }
 
@@ -196,17 +198,47 @@ final class NoteApiTest extends WebTestCase
     {
         $client = $this->browser;
         $client->jsonRequest('POST', '/api/notes', ['title' => 'Delete me']);
-        $id = $this->json()['id'];
-        $client->request('DELETE', '/api/notes/'.$id);
+        $created = $this->json();
+        $id = $created['id'];
+        $client->request('DELETE', '/api/notes/'.$id, server: ['HTTP_IF_MATCH' => '"'.$created['version'].'"']);
         self::assertResponseStatusCodeSame(204);
         self::assertSame('', $client->getResponse()->getContent());
-        $client->request('DELETE', '/api/notes/'.$id);
+        $client->request('DELETE', '/api/notes/'.$id, server: ['HTTP_IF_MATCH' => '"'.$created['version'].'"']);
         self::assertResponseStatusCodeSame(404);
 
         $client->request('PATCH', '/api/notes/'.$id);
         self::assertResponseStatusCodeSame(405);
         self::assertNotNull($client->getResponse()->headers->get('Allow'));
         self::assertArrayHasKey('error', $this->json());
+    }
+
+    public function testDeleteRequiresCurrentVersionAndPreservesChangedNote(): void
+    {
+        $client = $this->browser;
+        $client->jsonRequest('POST', '/api/notes', ['title' => 'Исходная']);
+        $created = $this->json();
+
+        $client->request('DELETE', '/api/notes/'.$created['id']);
+        self::assertResponseStatusCodeSame(428);
+
+        $client->jsonRequest('PUT', '/api/notes/'.$created['id'], [
+            'title' => 'Изменённая', 'content' => '', 'version' => $created['version'],
+        ]);
+        $updated = $this->json();
+
+        $client->request('DELETE', '/api/notes/'.$created['id'], server: [
+            'HTTP_IF_MATCH' => '"'.$created['version'].'"',
+        ]);
+        self::assertResponseStatusCodeSame(409);
+
+        $client->request('GET', '/api/notes/'.$created['id']);
+        self::assertResponseIsSuccessful();
+        self::assertSame('Изменённая', $this->json()['title']);
+
+        $client->request('DELETE', '/api/notes/'.$created['id'], server: [
+            'HTTP_IF_MATCH' => '"'.$updated['version'].'"',
+        ]);
+        self::assertResponseStatusCodeSame(204);
     }
 
     private function json(): array

@@ -25,6 +25,7 @@ export default function App() {
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  const [deleteError, setDeleteError] = useState('');
   const [pending, setPending] = useState(false);
   const [toast, setToast] = useState('');
 
@@ -56,12 +57,22 @@ export default function App() {
   const removeNote = async () => {
     setPending(true);
     try {
-      const result = await deleteNote(deleting.id);
+      const result = await deleteNote(deleting.id, deleting.version);
       setDeleting(null);
+      setDeleteError('');
       setToast(result.syncError ? 'Заметка удалена; обновить список с сервера не удалось' : 'Заметка удалена');
     } catch (caught) {
-      setDeleting(null);
-      setError(caught.message);
+      if (caught.status === 409) {
+        setDeleteError('Заметка изменилась после открытия и не была удалена. Проверьте актуальные данные и повторите удаление.');
+        try {
+          setDeleting(await getNote(deleting.id));
+        } catch (reloadError) {
+          setDeleteError(`${caught.message} Не удалось получить актуальную версию: ${reloadError.message}`);
+        }
+      } else {
+        setDeleting(null);
+        setError(caught.message);
+      }
     } finally {
       setPending(false);
     }
@@ -82,11 +93,12 @@ export default function App() {
         )}
         <NotesList notes={shownNotes} initialLoading={initialLoading} refreshing={refreshing} loadError={error}
                    search={search} onCreate={openCreate}
-                   onEdit={setEditing} onDelete={setDeleting}/>
+                   onEdit={setEditing} onDelete={(note) => { setDeleteError(''); setDeleting(note); }}/>
       </main>
       <NoteEditorModal note={editing} saving={pending} onClose={() => setEditing(null)} onSave={saveNote}
                        onGetLatest={getNote}/>
-      <DeleteNoteModal note={deleting} deleting={pending} onClose={() => setDeleting(null)}
+      <DeleteNoteModal note={deleting} deleting={pending} error={deleteError}
+                       onClose={() => { setDeleting(null); setDeleteError(''); }}
                        onConfirm={removeNote}/>
       <Toast message={toast} onClose={() => setToast('')}/>
     </div>

@@ -11,8 +11,11 @@ use Doctrine\ORM\EntityManagerInterface;
 
 final readonly class NoteRepository implements NoteRepositoryInterface
 {
-    public function __construct(private EntityManagerInterface $entityManager) {}
+    public function __construct(private EntityManagerInterface $entityManager)
+    {
+    }
 
+    /** @return list<Note> */
     public function findAll(): array
     {
         return $this->entityManager->getRepository(Note::class)->findBy([], ['updatedAt' => 'DESC', 'id' => 'DESC']);
@@ -41,16 +44,10 @@ final readonly class NoteRepository implements NoteRepositoryInterface
         return $note;
     }
 
-    public function delete(int $id): bool
+    public function delete(Note $note, int $expectedVersion): void
     {
-        $note = $this->find($id);
-        if ($note === null) {
-            return false;
-        }
+        $this->entityManager->lock($note, LockMode::OPTIMISTIC, $expectedVersion);
         $this->entityManager->remove($note);
         $this->entityManager->flush();
-
-        return true;
     }
-
 }

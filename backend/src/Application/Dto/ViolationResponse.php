@@ -10,8 +10,10 @@ use OpenApi\Attributes as OA;
 final readonly class ViolationResponse
 {
     public function __construct(
-        #[OA\Property(example: 'title')] public string $field,
-        #[OA\Property(example: 'Укажите название заметки.')] public string $message,
+        #[OA\Property(example: 'title')]
+        public string $field,
+        #[OA\Property(example: 'Укажите название заметки.')]
+        public string $message,
     ) {
     }
 }

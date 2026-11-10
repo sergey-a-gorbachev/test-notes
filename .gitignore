@@ -10,6 +10,7 @@
 **/build/
 **/dist/
 **/coverage/
+frontend/openapi.generated.yaml
 backend/var/*
 !backend/var/data/
 backend/var/data/*

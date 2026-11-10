@@ -27,7 +27,7 @@ class Note
     #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
     private DateTimeImmutable $createdAt;
 
-    #[ORM\Column(name: 'updated_at', type: 'datetime_immutable')]
+    #[ORM\Column(name: 'updated_at', type: 'datetime_immutable_microseconds')]
     private DateTimeImmutable $updatedAt;
 
     #[ORM\Version]
@@ -49,10 +49,28 @@ class Note
         $this->updatedAt = new DateTimeImmutable('now', new DateTimeZone('UTC'));
     }
 
-    public function id(): int { return $this->id ?? throw new \LogicException('Заметка ещё не сохранена.'); }
-    public function title(): string { return $this->title; }
-    public function content(): string { return $this->content; }
-    public function createdAt(): DateTimeImmutable { return $this->createdAt; }
-    public function updatedAt(): DateTimeImmutable { return $this->updatedAt; }
-    public function version(): int { return $this->version; }
+    public function id(): int
+    {
+        return $this->id ?? throw new \LogicException('Заметка ещё не сохранена.');
+    }
+    public function title(): string
+    {
+        return $this->title;
+    }
+    public function content(): string
+    {
+        return $this->content;
+    }
+    public function createdAt(): DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
+    public function updatedAt(): DateTimeImmutable
+    {
+        return $this->updatedAt;
+    }
+    public function version(): int
+    {
+        return $this->version;
+    }
 }
