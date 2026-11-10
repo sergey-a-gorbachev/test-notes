@@ -1,0 +1,11 @@
+**/node_modules
+**/vendor
+**/build
+**/dist
+**/var
+**/.phpunit.cache
+**/.env.local
+**/.env.*.local
+**/*.sqlite*
+.git
+.idea

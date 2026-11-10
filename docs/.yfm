@@ -1,0 +1,5 @@
+allowHtml: true
+project-name: test-notes-api
+docs-viewer:
+  logo-options:
+    title: Notes API

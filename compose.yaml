@@ -1,0 +1,35 @@
+services:
+  api:
+    build:
+      context: .
+      target: api
+    environment:
+      APP_ENV: prod
+      APP_DEBUG: '0'
+      APP_SECRET: 'change-me'
+      DATABASE_URL: sqlite:////app/var/data/notes.sqlite
+    volumes:
+      - notes_data:/app/var/data
+    ports:
+      - '127.0.0.1:8000:8000'
+    healthcheck:
+      test: [ "CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8000/api/health') === false ? 1 : 0);" ]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+      start_period: 10s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      target: web
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - '127.0.0.1:8080:80'
+    restart: unless-stopped
+
+volumes:
+  notes_data:

@@ -1,0 +1,10 @@
+/.phpunit.cache/
+/.phpunit.result.cache
+/vendor/
+/var/*
+!/var/data/
+/var/data/*
+!/var/data/.gitkeep
+/.env.local
+/.env.*.local
+/config/reference.php

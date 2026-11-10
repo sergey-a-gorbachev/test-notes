@@ -1,0 +1,10 @@
+{
+  "name": "test-notes-api-docs",
+  "private": true,
+  "scripts": {
+    "build": "yfm build -i . -o build"
+  },
+  "devDependencies": {
+    "@diplodoc/cli": "5.67.1"
+  }
+}
