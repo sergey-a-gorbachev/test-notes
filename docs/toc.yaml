@@ -12,7 +12,7 @@ items:
           tags:
             __root__:
               name: API-справочник
-            Notes:
+            Заметки:
               name: Заметки
           leadingPage:
             name: Описание API

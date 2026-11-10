@@ -23,7 +23,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 
 #[Route('/api/notes', name: 'notes_')]
-#[OA\Tag(name: 'Notes', description: 'Операции для управления заметками.')]
+#[OA\Tag(name: 'Заметки', description: 'Операции для управления заметками.')]
 final readonly class NoteController
 {
     #[Route('', name: 'index', methods: ['GET'])]
