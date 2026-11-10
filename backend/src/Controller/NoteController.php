@@ -30,7 +30,7 @@ use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 final readonly class NoteController
 {
     #[Route('', name: 'index', methods: ['GET'])]
-    #[OA\Get(summary: 'Получить список заметок', description: 'Возвращает все заметки, начиная с недавно изменённых.')]
+    #[OA\Get(summary: 'Список заметок', description: 'Возвращает все заметки, начиная с недавно изменённых.')]
     #[OA\Response(response: 200, description: 'Список заметок получен.', content: new Model(type: NoteListResponse::class))]
     public function index(ListNotes $useCase): JsonResponse
     {
