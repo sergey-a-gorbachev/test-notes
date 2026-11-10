@@ -18,7 +18,8 @@ describe('NoteEditorModal', () => {
       .mockResolvedValueOnce(undefined);
     const onGetLatest = vi.fn().mockResolvedValue({id: 1, title: 'server', content: 'server', version: 2});
     render(<NoteEditorModal note={{id: 1, title: 'old', content: 'old', version: 1}} saving={false}
-                            onClose={() => {}} onSave={onSave} onGetLatest={onGetLatest}/>);
+                            onClose={() => {
+                            }} onSave={onSave} onGetLatest={onGetLatest}/>);
     fireEvent.change(screen.getByLabelText(/Название/), {target: {value: 'my draft'}});
     fireEvent.change(screen.getByLabelText(/Текст заметки/), {target: {value: 'draft body'}});
     fireEvent.click(screen.getByRole('button', {name: 'Сохранить изменения'}));
@@ -27,6 +28,10 @@ describe('NoteEditorModal', () => {
     expect(screen.getByLabelText(/Текст заметки/).value).toBe('draft body');
 
     fireEvent.click(screen.getByRole('button', {name: 'Сохранить изменения'}));
-    await waitFor(() => expect(onSave).toHaveBeenLastCalledWith({title: 'my draft', content: 'draft body', version: 2}));
+    await waitFor(() => expect(onSave).toHaveBeenLastCalledWith({
+      title: 'my draft',
+      content: 'draft body',
+      version: 2
+    }));
   });
 });
