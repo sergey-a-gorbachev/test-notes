@@ -10,6 +10,6 @@ final class NoteNotFoundException extends RuntimeException
 {
     public function __construct(int $id)
     {
-        parent::__construct(sprintf('Note %d not found.', $id));
+        parent::__construct(sprintf('Заметка с идентификатором %d не найдена.', $id));
     }
 }

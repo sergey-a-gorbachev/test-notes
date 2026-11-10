@@ -7,16 +7,19 @@ namespace App\Application\Dto;
 use OpenApi\Attributes as OA;
 use Symfony\Component\Validator\Constraints as Assert;
 
-#[OA\Schema(description: 'Complete note replacement with its current version.')]
+#[OA\Schema(description: 'Данные для полного обновления заметки с указанием её текущей версии.')]
 final readonly class UpdateNoteRequest
 {
     public function __construct(
-        #[Assert\NotBlank(message: 'Title is required.', normalizer: 'trim')]
-        #[Assert\Length(max: 160, maxMessage: 'Title must not exceed {{ limit }} characters.')]
+        #[OA\Property(description: 'Название заметки.', example: 'Список покупок')]
+        #[Assert\NotBlank(message: 'Укажите название заметки.', normalizer: 'trim')]
+        #[Assert\Length(max: 160, maxMessage: 'Название не должно превышать {{ limit }} символов.')]
         public string $title,
-        #[Assert\Length(max: 10000, maxMessage: 'Content must not exceed {{ limit }} characters.')]
+        #[OA\Property(description: 'Содержимое заметки.', example: 'Молоко, хлеб и сыр')]
+        #[Assert\Length(max: 10000, maxMessage: 'Текст не должен превышать {{ limit }} символов.')]
         public string $content,
-        #[Assert\Positive(message: 'Version must be a positive integer.')]
+        #[OA\Property(description: 'Текущая версия заметки для защиты от одновременного изменения.', example: 1)]
+        #[Assert\Positive(message: 'Версия должна быть положительным целым числом.')]
         public int $version,
     ) {
     }

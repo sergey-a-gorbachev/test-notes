@@ -148,7 +148,7 @@ final class NoteApiTest extends WebTestCase
         $client->jsonRequest('POST', '/api/notes', ['title' => 'First']);
         $first = $this->json();
         $client->jsonRequest('POST', '/api/notes', ['title' => 'Second']);
-        sleep(1); // SQLite stores Doctrine DATETIME values with one-second precision.
+        sleep(1); // SQLite хранит значения Doctrine DATETIME с точностью до секунды.
         $client->jsonRequest('PUT', '/api/notes/'.$first['id'], [
             'title' => 'First updated', 'content' => '', 'version' => $first['version'],
         ]);

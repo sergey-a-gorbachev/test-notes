@@ -11,8 +11,8 @@ vi.mock('@gravity-ui/uikit', () => ({
   TextArea: ({onUpdate, ...props}) => <textarea {...props} onChange={(event) => onUpdate(event.target.value)}/>,
 }));
 
-describe('NoteEditorModal', () => {
-  it('keeps entered text and fetches the current version after a conflict', async () => {
+describe('Редактор заметки', () => {
+  it('сохраняет введённый текст и получает актуальную версию после конфликта', async () => {
     const onSave = vi.fn()
       .mockRejectedValueOnce(new ApiError('conflict', {status: 409}))
       .mockResolvedValueOnce(undefined);

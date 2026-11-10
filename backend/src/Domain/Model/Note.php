@@ -49,7 +49,7 @@ class Note
         $this->updatedAt = new DateTimeImmutable('now', new DateTimeZone('UTC'));
     }
 
-    public function id(): int { return $this->id ?? throw new \LogicException('Note has not been persisted.'); }
+    public function id(): int { return $this->id ?? throw new \LogicException('Заметка ещё не сохранена.'); }
     public function title(): string { return $this->title; }
     public function content(): string { return $this->content; }
     public function createdAt(): DateTimeImmutable { return $this->createdAt; }

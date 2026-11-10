@@ -11,7 +11,7 @@ final readonly class ViolationResponse
 {
     public function __construct(
         #[OA\Property(example: 'title')] public string $field,
-        #[OA\Property(example: 'Title is required.')] public string $message,
+        #[OA\Property(example: 'Укажите название заметки.')] public string $message,
     ) {
     }
 }

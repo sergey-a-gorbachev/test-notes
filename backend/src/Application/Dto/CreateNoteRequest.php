@@ -7,14 +7,16 @@ namespace App\Application\Dto;
 use OpenApi\Attributes as OA;
 use Symfony\Component\Validator\Constraints as Assert;
 
-#[OA\Schema(description: 'Data required to create a note.')]
+#[OA\Schema(description: 'Данные для создания заметки.')]
 final readonly class CreateNoteRequest
 {
     public function __construct(
-        #[Assert\NotBlank(message: 'Title is required.', normalizer: 'trim')]
-        #[Assert\Length(max: 160, maxMessage: 'Title must not exceed {{ limit }} characters.')]
+        #[OA\Property(description: 'Название заметки.', example: 'Список покупок')]
+        #[Assert\NotBlank(message: 'Укажите название заметки.', normalizer: 'trim')]
+        #[Assert\Length(max: 160, maxMessage: 'Название не должно превышать {{ limit }} символов.')]
         public string $title,
-        #[Assert\Length(max: 10000, maxMessage: 'Content must not exceed {{ limit }} characters.')]
+        #[OA\Property(description: 'Содержимое заметки.', example: 'Молоко и хлеб')]
+        #[Assert\Length(max: 10000, maxMessage: 'Текст не должен превышать {{ limit }} символов.')]
         public string $content = '',
     ) {
     }
