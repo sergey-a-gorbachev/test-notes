@@ -10,7 +10,18 @@ import {Toast} from './components/Toast.jsx';
 import {useNotes} from './hooks/useNotes.js';
 
 export default function App() {
-  const {notes, initialLoading, refreshing, error, setError, refresh, getNote, createNote, updateNote, deleteNote} = useNotes();
+  const {
+    notes,
+    initialLoading,
+    refreshing,
+    error,
+    setError,
+    refresh,
+    getNote,
+    createNote,
+    updateNote,
+    deleteNote
+  } = useNotes();
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
@@ -66,9 +77,11 @@ export default function App() {
         <NotesToolbar count={notes.length} search={search} onSearchChange={setSearch}/>
         {!initialLoading && (
           <ErrorBanner message={error} onClose={() => setError('')}
-                       onRetry={() => void refresh().catch(() => {})}/>
+                       onRetry={() => void refresh().catch(() => {
+                       })}/>
         )}
-        <NotesList notes={shownNotes} initialLoading={initialLoading} refreshing={refreshing} loadError={error} search={search} onCreate={openCreate}
+        <NotesList notes={shownNotes} initialLoading={initialLoading} refreshing={refreshing} loadError={error}
+                   search={search} onCreate={openCreate}
                    onEdit={setEditing} onDelete={setDeleting}/>
       </main>
       <NoteEditorModal note={editing} saving={pending} onClose={() => setEditing(null)} onSave={saveNote}

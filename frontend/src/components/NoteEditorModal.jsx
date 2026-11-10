@@ -61,11 +61,15 @@ export function NoteEditorModal({note, saving, onClose, onSave, onGetLatest}) {
         заметки</label><span>{form.content.length} / 10000</span></div>
       <TextArea id="note-content" size="l" rows={7} placeholder="Начните писать здесь..." value={form.content}
                 onUpdate={(content) => setForm((current) => ({...current, content}))} disabled={saving}
-                maxLength={10000}/>{fieldErrors.content && <div className="field-error" role="alert">{fieldErrors.content}</div>}{fieldErrors.version && <div className="field-error" role="alert">{fieldErrors.version}</div>}{error && <div className="form-error" role="alert">{error}</div>}
+                maxLength={10000}/>{fieldErrors.content &&
+      <div className="field-error" role="alert">{fieldErrors.content}</div>}{fieldErrors.version &&
+      <div className="field-error" role="alert">{fieldErrors.version}</div>}{error &&
+      <div className="form-error" role="alert">{error}</div>}
       <div className="dialog-actions"><Button type="button" size="l" view="flat" onClick={onClose}
                                               disabled={saving}>Отмена</Button><Button type="submit" size="l"
                                                                                        view="action"
-                                                                                       loading={saving} disabled={saving}>{isEditing ? 'Сохранить изменения' : 'Создать заметку'}</Button>
+                                                                                       loading={saving}
+                                                                                       disabled={saving}>{isEditing ? 'Сохранить изменения' : 'Создать заметку'}</Button>
       </div>
     </form>
   </Modal>;

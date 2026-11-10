@@ -34,14 +34,20 @@ export function useNotes() {
   }, []);
   useEffect(() => {
     mounted.current = true;
-    void refresh({initial: true}).catch(() => {});
+    void refresh({initial: true}).catch(() => {
+    });
     return () => {
       mounted.current = false;
       active.current.controller?.abort();
     };
   }, [refresh]);
   const synchronize = async () => {
-    try { await refresh(); return null; } catch (caught) { return caught; }
+    try {
+      await refresh();
+      return null;
+    } catch (caught) {
+      return caught;
+    }
   };
   const createNote = async (note) => {
     const created = await notesApi.create(note);
