@@ -97,53 +97,6 @@ npm run build
 npm test
 ```
 
-## Запуск без Docker
-
-Для API требуются PHP 8.4, Composer и расширение SQLite для PHP.
-
-```bash
-cd backend
-composer install
-php bin/console doctrine:migrations:migrate --no-interaction
-php -S 127.0.0.1:8000 -t public public/index.php
-```
-
-Интерфейс запускается в отдельном терминале:
-
-```bash
-cd frontend
-npm ci
-npm run dev
-```
-
-Интерфейс будет доступен по адресу http://localhost:5173.
-
-Встроенный PHP-сервер используется только для локальной разработки и демонстрационного контейнера: он
-однопроцессный и не заменяет промышленный HTTP/PHP-сервер.
-
-## Проверки перед отправкой изменений
-
-```bash
-find backend/src backend/tests -name '*.php' -print0 | xargs -0 -n1 php -l
-(cd backend && composer validate --strict && vendor/bin/phpunit)
-(cd backend && composer cs:check && composer analyse)
-(cd frontend && npm ci && npm run lint && npm test && npm run build)
-backend/bin/console nelmio:apidoc:dump --format=yaml > frontend/openapi.generated.yaml
-(cd frontend && npx redocly lint openapi.generated.yaml)
-docker compose up -d --build
-docker compose ps
-curl --fail http://localhost:8080/api/health
-curl --fail http://localhost:8080/openapi.yaml
-curl --fail http://localhost:8080/docs/
-(cd frontend && npx playwright install chromium && npm run test:e2e)
-```
-
-Удаление защищено оптимистической блокировкой: клиент обязан передать текущую версию заметки в заголовке
-`If-Match`. Если заметка изменилась после открытия, API возвращает `409` и не удаляет данные. При отсутствии
-заголовка API возвращает `428`.
-
-Рекомендуемые настройки защиты ветки `main` описаны в [`.github/BRANCH_PROTECTION.md`](.github/BRANCH_PROTECTION.md).
-
 ## Структура проекта
 
 ```text
