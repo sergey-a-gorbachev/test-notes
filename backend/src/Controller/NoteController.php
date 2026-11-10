@@ -6,8 +6,9 @@ namespace App\Controller;
 
 use App\Application\Dto\ErrorResponse;
 use App\Application\Dto\NoteListResponse;
-use App\Application\Dto\NoteRequest;
+use App\Application\Dto\CreateNoteRequest;
 use App\Application\Dto\NoteResponse;
+use App\Application\Dto\UpdateNoteRequest;
 use App\Application\UseCase\CreateNote;
 use App\Application\UseCase\DeleteNote;
 use App\Application\UseCase\GetNote;
@@ -42,7 +43,7 @@ final readonly class NoteController
     #[OA\Response(response: 400, description: 'Некорректное тело запроса.', content: new Model(type: ErrorResponse::class))]
     #[OA\Response(response: 422, description: 'Поля не прошли проверку.', content: new Model(type: ErrorResponse::class))]
     public function create(
-        #[MapRequestPayload(acceptFormat: 'json', serializationContext: [AbstractNormalizer::ALLOW_EXTRA_ATTRIBUTES => false])] NoteRequest $request,
+        #[MapRequestPayload(acceptFormat: 'json', serializationContext: [AbstractNormalizer::ALLOW_EXTRA_ATTRIBUTES => false])] CreateNoteRequest $request,
         CreateNote $useCase,
     ): JsonResponse {
         $note = $useCase($request);
@@ -58,7 +59,7 @@ final readonly class NoteController
     #[OA\Response(response: 422, description: 'Поля не прошли проверку.', content: new Model(type: ErrorResponse::class))]
     public function update(
         int $id,
-        #[MapRequestPayload(acceptFormat: 'json', serializationContext: [AbstractNormalizer::ALLOW_EXTRA_ATTRIBUTES => false])] NoteRequest $request,
+        #[MapRequestPayload(acceptFormat: 'json', serializationContext: [AbstractNormalizer::ALLOW_EXTRA_ATTRIBUTES => false])] UpdateNoteRequest $request,
         UpdateNote $useCase,
     ): JsonResponse { return new JsonResponse($useCase($id, $request)); }
 

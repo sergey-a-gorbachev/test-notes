@@ -14,7 +14,7 @@ interface NoteRepositoryInterface
 
     public function create(string $title, string $content): Note;
 
-    public function update(int $id, string $title, string $content, ?int $expectedVersion = null): ?Note;
+    public function update(Note $note, string $title, string $content, int $expectedVersion): Note;
 
     public function delete(int $id): bool;
 }

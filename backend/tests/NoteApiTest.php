@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests;
 
-use App\Infrastructure\Persistence\NoteRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
@@ -28,8 +28,9 @@ final class NoteApiTest extends WebTestCase
             ]), new NullOutput());
             self::$migrated = true;
         }
-        $notes = static::getContainer()->get(NoteRepository::class);
-        $notes->clear();
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->getConnection()->executeStatement('DELETE FROM notes');
+        $entityManager->clear();
         $this->browser->disableReboot();
     }
 
@@ -53,7 +54,7 @@ final class NoteApiTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSame($id, $this->json()['id']);
 
-        $client->jsonRequest('PUT', '/api/notes/'.$id, ['title' => 'Updated', 'content' => 'Changed']);
+        $client->jsonRequest('PUT', '/api/notes/'.$id, ['title' => 'Updated', 'content' => 'Changed', 'version' => $created['version']]);
         self::assertResponseIsSuccessful();
         self::assertSame('Updated', $this->json()['title']);
         self::assertSame('Changed', $this->json()['content']);
@@ -76,6 +77,25 @@ final class NoteApiTest extends WebTestCase
         self::assertSame('title', $this->json()['violations'][0]['field']);
     }
 
+    public function testCreateBoundariesAndContract(): void
+    {
+        $client = $this->browser;
+        $client->jsonRequest('POST', '/api/notes', ['title' => str_repeat('t', 160), 'content' => str_repeat('c', 10000)]);
+        self::assertResponseStatusCodeSame(201);
+
+        foreach ([
+            ['title' => str_repeat('t', 161)],
+            ['title' => 'ok', 'content' => str_repeat('c', 10001)],
+            ['content' => 'missing title'],
+            ['title' => null],
+            ['title' => 'ok', 'version' => 1],
+        ] as $payload) {
+            $client->jsonRequest('POST', '/api/notes', $payload);
+            self::assertResponseStatusCodeSame(422);
+            self::assertArrayHasKey('error', $this->json());
+        }
+    }
+
     public function testUpdateRejectsStaleVersion(): void
     {
         $client = $this->browser;
@@ -95,6 +115,45 @@ final class NoteApiTest extends WebTestCase
             'version' => $created['version'],
         ]);
         self::assertResponseStatusCodeSame(409);
+
+        $client->request('GET', '/api/notes/'.$created['id']);
+        self::assertSame('Current', $this->json()['title']);
+    }
+
+    public function testUpdateRequiresPositiveVersionAndIncrementsIt(): void
+    {
+        $client = $this->browser;
+        $client->jsonRequest('POST', '/api/notes', ['title' => 'Initial']);
+        $created = $this->json();
+
+        foreach ([null, 0, -1, '1'] as $version) {
+            $payload = ['title' => 'Changed', 'content' => 'text'];
+            if ($version !== null) $payload['version'] = $version;
+            $client->jsonRequest('PUT', '/api/notes/'.$created['id'], $payload);
+            self::assertResponseStatusCodeSame(422);
+        }
+
+        $client->jsonRequest('PUT', '/api/notes/'.$created['id'], [
+            'title' => 'Changed', 'content' => 'text', 'version' => $created['version'],
+        ]);
+        self::assertResponseIsSuccessful();
+        self::assertSame($created['version'] + 1, $this->json()['version']);
+    }
+
+    public function testListIsEmptyAndRecentlyUpdatedNoteComesFirst(): void
+    {
+        $client = $this->browser;
+        $client->request('GET', '/api/notes');
+        self::assertSame([], $this->json()['items']);
+        $client->jsonRequest('POST', '/api/notes', ['title' => 'First']);
+        $first = $this->json();
+        $client->jsonRequest('POST', '/api/notes', ['title' => 'Second']);
+        sleep(1); // SQLite stores Doctrine DATETIME values with one-second precision.
+        $client->jsonRequest('PUT', '/api/notes/'.$first['id'], [
+            'title' => 'First updated', 'content' => '', 'version' => $first['version'],
+        ]);
+        $client->request('GET', '/api/notes');
+        self::assertSame($first['id'], $this->json()['items'][0]['id']);
     }
 
     public function testWrongFieldTypeAndOversizedContentAreRejected(): void
@@ -126,11 +185,28 @@ final class NoteApiTest extends WebTestCase
         $client->request('GET', '/api/notes/99999');
         self::assertResponseStatusCodeSame(404);
 
-        $client->jsonRequest('PUT', '/api/notes/99999', ['title' => 'hello']);
+        $client->jsonRequest('PUT', '/api/notes/99999', ['title' => 'hello', 'content' => '', 'version' => 1]);
         self::assertResponseStatusCodeSame(404);
 
         $client->request('DELETE', '/api/notes/99999');
         self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testDeleteTwiceAndMethodNotAllowedPreservesAllow(): void
+    {
+        $client = $this->browser;
+        $client->jsonRequest('POST', '/api/notes', ['title' => 'Delete me']);
+        $id = $this->json()['id'];
+        $client->request('DELETE', '/api/notes/'.$id);
+        self::assertResponseStatusCodeSame(204);
+        self::assertSame('', $client->getResponse()->getContent());
+        $client->request('DELETE', '/api/notes/'.$id);
+        self::assertResponseStatusCodeSame(404);
+
+        $client->request('PATCH', '/api/notes/'.$id);
+        self::assertResponseStatusCodeSame(405);
+        self::assertNotNull($client->getResponse()->headers->get('Allow'));
+        self::assertArrayHasKey('error', $this->json());
     }
 
     private function json(): array

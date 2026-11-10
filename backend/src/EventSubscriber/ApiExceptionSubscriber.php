@@ -19,6 +19,10 @@ final class ApiExceptionSubscriber
     #[AsEventListener]
     public function onKernelException(ExceptionEvent $event): void
     {
+        if (!str_starts_with($event->getRequest()->getPathInfo(), '/api/')) {
+            return;
+        }
+
         $exception = $event->getThrowable();
         if ($exception instanceof NoteNotFoundException) {
             $event->setResponse(new JsonResponse(['error' => 'Note not found.'], Response::HTTP_NOT_FOUND));
@@ -38,16 +42,29 @@ final class ApiExceptionSubscriber
             ], Response::HTTP_UNPROCESSABLE_ENTITY));
             return;
         }
-        if (!$exception instanceof HttpExceptionInterface || !str_starts_with($event->getRequest()->getPathInfo(), '/api/')) return;
-
-        $validation = $exception->getPrevious();
+        $validation = $exception instanceof HttpExceptionInterface ? $exception->getPrevious() : null;
         if ($validation instanceof ValidationFailedException) {
             $violations = [];
             foreach ($validation->getViolations() as $violation) $violations[] = ['field' => $violation->getPropertyPath(), 'message' => $violation->getMessage()];
             $event->setResponse(new JsonResponse(['error' => 'Validation failed.', 'violations' => $violations], Response::HTTP_UNPROCESSABLE_ENTITY));
             return;
         }
-        $message = $exception->getStatusCode() === 400 ? 'Malformed JSON.' : $exception->getMessage();
-        $event->setResponse(new JsonResponse(['error' => $message], $exception->getStatusCode()));
+        if ($exception instanceof HttpExceptionInterface) {
+            $status = $exception->getStatusCode();
+            $messages = [
+                Response::HTTP_BAD_REQUEST => 'Malformed JSON.',
+                Response::HTTP_NOT_FOUND => 'Resource not found.',
+                Response::HTTP_METHOD_NOT_ALLOWED => 'Method not allowed.',
+                Response::HTTP_UNSUPPORTED_MEDIA_TYPE => 'Unsupported media type.',
+            ];
+            $event->setResponse(new JsonResponse(
+                ['error' => $messages[$status] ?? (Response::$statusTexts[$status] ?? 'Request failed.')],
+                $status,
+                $exception->getHeaders(),
+            ));
+            return;
+        }
+
+        $event->setResponse(new JsonResponse(['error' => 'Internal server error.'], Response::HTTP_INTERNAL_SERVER_ERROR));
     }
 }

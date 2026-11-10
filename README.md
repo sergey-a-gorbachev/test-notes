@@ -23,6 +23,13 @@ cd test-notes
 docker compose up -d --build
 ```
 
+Для окружения, доступного не только локально, задайте случайный секрет через `APP_SECRET` (значение по умолчанию
+предназначено только для demo-запуска на `127.0.0.1`):
+
+```bash
+APP_SECRET="$(openssl rand -hex 32)" docker compose up -d --build
+```
+
 После запуска доступны:
 
 | Сервис             | Адрес                              |
@@ -69,12 +76,16 @@ docker compose down -v
 - `content` — строка, не более 10 000 символов.
 - `version` — положительное целое число для защиты от одновременного изменения заметки.
 
+`POST` не принимает `version`. Для `PUT` обязательна версия из последнего GET; при конфликте API отвечает `409`,
+не изменяя сохранённые данные. После конфликта следует снова получить заметку и повторить PUT осознанно.
+
 ## Тесты
 
 ```bash
 cd backend
 composer install
 vendor/bin/phpunit
+composer validate --strict
 ```
 
 Сборка интерфейса:
@@ -83,6 +94,7 @@ vendor/bin/phpunit
 cd frontend
 npm ci
 npm run build
+npm test
 ```
 
 ## Запуск без Docker
@@ -105,6 +117,22 @@ npm run dev
 ```
 
 Интерфейс будет доступен по адресу http://localhost:5173.
+
+Встроенный PHP-сервер используется только для локальной разработки и demo-контейнера: он однопроцессный и не
+заменяет production HTTP/PHP runtime.
+
+## Проверки перед отправкой изменений
+
+```bash
+find backend/src backend/tests -name '*.php' -print0 | xargs -0 -n1 php -l
+(cd backend && composer validate --strict && vendor/bin/phpunit)
+(cd frontend && npm ci && npm test && npm run build)
+docker compose up -d --build
+docker compose ps
+curl --fail http://localhost:8080/api/health
+curl --fail http://localhost:8080/openapi.yaml
+curl --fail http://localhost:8080/docs/
+```
 
 ## Структура проекта
 

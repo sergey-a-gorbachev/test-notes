@@ -8,7 +8,7 @@ export class ApiError extends Error {
 }
 
 export class HttpClient {
-  constructor({baseUrl = '', fetchImpl = fetch} = {}) {
+  constructor({baseUrl = '', fetchImpl = (...args) => globalThis.fetch(...args)} = {}) {
     this.baseUrl = baseUrl.replace(/\/$/, '');
     this.fetchImpl = fetchImpl;
   }
@@ -22,6 +22,7 @@ export class HttpClient {
         body: body === undefined ? undefined : JSON.stringify(body),
       });
     } catch (cause) {
+      if (cause?.name === 'AbortError') throw cause;
       throw new ApiError('Не удалось подключиться к серверу. Попробуйте ещё раз.', {cause});
     }
     if (response.status === 204) return null;

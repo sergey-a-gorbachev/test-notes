@@ -10,7 +10,7 @@ import {Toast} from './components/Toast.jsx';
 import {useNotes} from './hooks/useNotes.js';
 
 export default function App() {
-  const {notes, loading, error, setError, refresh, createNote, updateNote, deleteNote} = useNotes();
+  const {notes, initialLoading, refreshing, error, setError, refresh, getNote, createNote, updateNote, deleteNote} = useNotes();
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
@@ -28,12 +28,13 @@ export default function App() {
   const saveNote = async (payload) => {
     setPending(true);
     try {
+      let result;
       if (editing.id) {
-        await updateNote(editing.id, {...payload, version: editing.version});
-        setToast('Изменения сохранены');
+        result = await updateNote(editing.id, payload);
+        setToast(result.syncError ? 'Изменения сохранены; обновить список с сервера не удалось' : 'Изменения сохранены');
       } else {
-        await createNote(payload);
-        setToast('Заметка создана');
+        result = await createNote(payload);
+        setToast(result.syncError ? 'Заметка создана; обновить список с сервера не удалось' : 'Заметка создана');
       }
       setEditing(null);
     } finally {
@@ -44,9 +45,9 @@ export default function App() {
   const removeNote = async () => {
     setPending(true);
     try {
-      await deleteNote(deleting.id);
+      const result = await deleteNote(deleting.id);
       setDeleting(null);
-      setToast('Заметка удалена');
+      setToast(result.syncError ? 'Заметка удалена; обновить список с сервера не удалось' : 'Заметка удалена');
     } catch (caught) {
       setDeleting(null);
       setError(caught.message);
@@ -63,11 +64,15 @@ export default function App() {
       <main className="container">
         <PageHeader onCreate={openCreate}/>
         <NotesToolbar count={notes.length} search={search} onSearchChange={setSearch}/>
-        <ErrorBanner message={error} onClose={() => setError('')} onRetry={refresh}/>
-        <NotesList notes={shownNotes} loading={loading} search={search} onCreate={openCreate}
+        {!initialLoading && (
+          <ErrorBanner message={error} onClose={() => setError('')}
+                       onRetry={() => void refresh().catch(() => {})}/>
+        )}
+        <NotesList notes={shownNotes} initialLoading={initialLoading} refreshing={refreshing} loadError={error} search={search} onCreate={openCreate}
                    onEdit={setEditing} onDelete={setDeleting}/>
       </main>
-      <NoteEditorModal note={editing} saving={pending} onClose={() => setEditing(null)} onSave={saveNote}/>
+      <NoteEditorModal note={editing} saving={pending} onClose={() => setEditing(null)} onSave={saveNote}
+                       onGetLatest={getNote}/>
       <DeleteNoteModal note={deleting} deleting={pending} onClose={() => setDeleting(null)}
                        onConfirm={removeNote}/>
       <Toast message={toast} onClose={() => setToast('')}/>

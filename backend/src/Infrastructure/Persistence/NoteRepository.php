@@ -32,15 +32,9 @@ final readonly class NoteRepository implements NoteRepositoryInterface
         return $note;
     }
 
-    public function update(int $id, string $title, string $content, ?int $expectedVersion = null): ?Note
+    public function update(Note $note, string $title, string $content, int $expectedVersion): Note
     {
-        $note = $this->find($id);
-        if ($note === null) {
-            return null;
-        }
-        if ($expectedVersion !== null) {
-            $this->entityManager->lock($note, LockMode::OPTIMISTIC, $expectedVersion);
-        }
+        $this->entityManager->lock($note, LockMode::OPTIMISTIC, $expectedVersion);
         $note->update($title, $content);
         $this->entityManager->flush();
 
@@ -59,9 +53,4 @@ final readonly class NoteRepository implements NoteRepositoryInterface
         return true;
     }
 
-    public function clear(): void
-    {
-        $this->entityManager->createQuery('DELETE FROM '.Note::class)->execute();
-        $this->entityManager->clear();
-    }
 }

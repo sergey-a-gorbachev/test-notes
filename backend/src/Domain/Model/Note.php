@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Model;
 
 use DateTimeImmutable;
+use DateTimeZone;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
@@ -37,7 +38,7 @@ class Note
     {
         $this->title = $title;
         $this->content = $content;
-        $this->createdAt = new DateTimeImmutable();
+        $this->createdAt = new DateTimeImmutable('now', new DateTimeZone('UTC'));
         $this->updatedAt = $this->createdAt;
     }
 
@@ -45,7 +46,7 @@ class Note
     {
         $this->title = $title;
         $this->content = $content;
-        $this->updatedAt = new DateTimeImmutable();
+        $this->updatedAt = new DateTimeImmutable('now', new DateTimeZone('UTC'));
     }
 
     public function id(): int { return $this->id ?? throw new \LogicException('Note has not been persisted.'); }

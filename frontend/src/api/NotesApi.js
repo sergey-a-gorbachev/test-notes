@@ -4,12 +4,12 @@ export class NotesApi {
     this.endpoint = '/notes';
   }
 
-  async list() {
-    return (await this.client.request(this.endpoint)).items;
+  async list(options = {}) {
+    return (await this.client.request(this.endpoint, options)).items;
   }
 
-  get(id) {
-    return this.client.request(`${this.endpoint}/${id}`);
+  get(id, options = {}) {
+    return this.client.request(`${this.endpoint}/${id}`, options);
   }
 
   create(note) {
