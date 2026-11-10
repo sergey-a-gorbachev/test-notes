@@ -79,27 +79,28 @@ final readonly class NoteController
     #[Route('/{id}', name: 'delete', requirements: ['id' => '\d+'], methods: ['DELETE'])]
     #[OA\Delete(summary: 'Удалить заметку', description: 'Удаляет заметку с указанным идентификатором.')]
     #[OA\Parameter(
-        name: 'If-Match',
-        description: 'Текущая версия заметки, например "2".',
+        name: 'X-Note-Version',
+        description: 'Текущая числовая версия заметки, например 2.',
         in: 'header',
         required: true,
-        schema: new OA\Schema(type: 'string', pattern: '^(?:W/)?"?[1-9]\\d*"?$'),
+        schema: new OA\Schema(type: 'integer', minimum: 1),
     )]
     #[OA\Response(response: 204, description: 'Заметка удалена.')]
+    #[OA\Response(response: 400, description: 'Некорректный заголовок версии.', content: new Model(type: ErrorResponse::class))]
     #[OA\Response(response: 404, description: 'Заметка не найдена.', content: new Model(type: ErrorResponse::class))]
     #[OA\Response(response: 409, description: 'Версия заметки устарела.', content: new Model(type: ErrorResponse::class))]
-    #[OA\Response(response: 428, description: 'Не указан заголовок If-Match.', content: new Model(type: ErrorResponse::class))]
+    #[OA\Response(response: 428, description: 'Не указан заголовок X-Note-Version.', content: new Model(type: ErrorResponse::class))]
     public function delete(int $id, Request $request, DeleteNote $useCase): Response
     {
-        $ifMatch = $request->headers->get('If-Match');
-        if ($ifMatch === null) {
-            throw new PreconditionRequiredHttpException('Для удаления укажите текущую версию в заголовке If-Match.');
+        $version = $request->headers->get('X-Note-Version');
+        if ($version === null) {
+            throw new PreconditionRequiredHttpException('Для удаления укажите текущую версию в заголовке X-Note-Version.');
         }
-        if (preg_match('/^(?:W\/)?"?([1-9]\d*)"?$/', trim($ifMatch), $matches) !== 1) {
-            throw new BadRequestHttpException('Заголовок If-Match должен содержать положительный номер версии.');
+        if (preg_match('/^[1-9]\d*$/', $version) !== 1) {
+            throw new BadRequestHttpException('Заголовок X-Note-Version должен содержать положительный номер версии.');
         }
 
-        $useCase($id, (int) $matches[1]);
+        $useCase($id, (int) $version);
         return new Response(status: Response::HTTP_NO_CONTENT);
     }
 }

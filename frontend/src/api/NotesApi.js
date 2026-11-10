@@ -23,7 +23,7 @@ export class NotesApi {
   remove(id, version) {
     return this.client.request(`${this.endpoint}/${id}`, {
       method: 'DELETE',
-      headers: {'If-Match': `"${version}"`},
+      headers: {'X-Note-Version': String(version)},
     });
   }
 }

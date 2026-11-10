@@ -8,11 +8,13 @@ export function NoteEditorModal({note, saving, onClose, onSave, onGetLatest}) {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [version, setVersion] = useState(null);
+  const [conflict, setConflict] = useState(null);
   useEffect(() => {
     setForm(note?.id ? {title: note.title, content: note.content} : EMPTY_FORM);
     setVersion(note?.version ?? null);
     setError('');
     setFieldErrors({});
+    setConflict(null);
   }, [note]);
 
   const submit = async (event) => {
@@ -22,14 +24,15 @@ export function NoteEditorModal({note, saving, onClose, onSave, onGetLatest}) {
     if (title.length > 160 || form.content.length > 10000) return setError('Название — до 160 символов, текст — до 10 000.');
     try {
       setError('');
+      setFieldErrors({});
       await onSave({title, content: form.content, ...(note?.id ? {version} : {})});
     } catch (caught) {
       setFieldErrors(Object.fromEntries((caught.violations || []).map(({field, message}) => [field, message])));
       if (caught.status === 409 && note?.id) {
-        setError('Заметка уже изменена. Ваш текст сохранён в форме; загружаем актуальную версию для повторной попытки.');
+        setError('Заметка уже изменена другим пользователем. Ваш вариант сохранён в форме.');
         try {
           const latest = await onGetLatest(note.id);
-          setVersion(latest.version);
+          setConflict(latest);
         } catch {
           setError('Заметка уже изменена. Ваш текст сохранён, но получить актуальную версию не удалось.');
         }
@@ -37,6 +40,19 @@ export function NoteEditorModal({note, saving, onClose, onSave, onGetLatest}) {
         setError(caught.message);
       }
     }
+  };
+
+  const useServerVersion = () => {
+    setForm({title: conflict.title, content: conflict.content});
+    setVersion(conflict.version);
+    setConflict(null);
+    setError('Загружена актуальная версия заметки. При необходимости отредактируйте её и сохраните.');
+  };
+
+  const mergeManually = () => {
+    setVersion(conflict.version);
+    setConflict(null);
+    setError('Ваш текст оставлен в форме. Проверьте и объедините изменения перед сохранением.');
   };
 
   const isEditing = Boolean(note?.id);
@@ -63,13 +79,22 @@ export function NoteEditorModal({note, saving, onClose, onSave, onGetLatest}) {
                 onUpdate={(content) => setForm((current) => ({...current, content}))} disabled={saving}
                 maxLength={10000}/>{fieldErrors.content &&
       <div className="field-error" role="alert">{fieldErrors.content}</div>}{fieldErrors.version &&
-      <div className="field-error" role="alert">{fieldErrors.version}</div>}{error &&
+      <div className="field-error" role="alert">{fieldErrors.version}</div>}{conflict &&
+      <div className="conflict-panel" role="alert">
+        <strong>Актуальная версия на сервере</strong>
+        <div className="conflict-version"><b>{conflict.title}</b><p>{conflict.content || 'Текст отсутствует.'}</p></div>
+        <p>Выберите актуальную версию либо оставьте свой текст и объедините изменения вручную.</p>
+        <div className="conflict-actions">
+          <Button type="button" onClick={useServerVersion}>Загрузить версию с сервера</Button>
+          <Button type="button" view="outlined" onClick={mergeManually}>Объединить вручную</Button>
+        </div>
+      </div>}{error &&
       <div className="form-error" role="alert">{error}</div>}
       <div className="dialog-actions"><Button type="button" size="l" view="flat" onClick={onClose}
                                               disabled={saving}>Отмена</Button><Button type="submit" size="l"
                                                                                        view="action"
                                                                                        loading={saving}
-                                                                                       disabled={saving}>{isEditing ? 'Сохранить изменения' : 'Создать заметку'}</Button>
+                                                                                       disabled={saving || Boolean(conflict)}>{isEditing ? 'Сохранить изменения' : 'Создать заметку'}</Button>
       </div>
     </form>
   </Modal>;

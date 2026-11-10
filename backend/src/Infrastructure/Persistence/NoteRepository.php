@@ -44,10 +44,16 @@ final readonly class NoteRepository implements NoteRepositoryInterface
         return $note;
     }
 
-    public function delete(Note $note, int $expectedVersion): void
+    public function delete(int $id, int $expectedVersion): bool
     {
-        $this->entityManager->lock($note, LockMode::OPTIMISTIC, $expectedVersion);
-        $this->entityManager->remove($note);
-        $this->entityManager->flush();
+        $deleted = $this->entityManager->getConnection()->executeStatement(
+            'DELETE FROM notes WHERE id = :id AND version = :version',
+            ['id' => $id, 'version' => $expectedVersion],
+        );
+
+        // DBAL обходит UnitOfWork, поэтому удаляем из него возможные устаревшие сущности.
+        $this->entityManager->clear();
+
+        return $deleted === 1;
     }
 }

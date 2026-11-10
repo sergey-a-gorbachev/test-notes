@@ -60,7 +60,7 @@ final class NoteApiTest extends WebTestCase
         self::assertSame('Updated', $updated['title']);
         self::assertSame('Changed', $updated['content']);
 
-        $client->request('DELETE', '/api/notes/'.$id, server: ['HTTP_IF_MATCH' => '"'.$updated['version'].'"']);
+        $client->request('DELETE', '/api/notes/'.$id, server: ['HTTP_X_NOTE_VERSION' => (string) $updated['version']]);
         self::assertResponseStatusCodeSame(204);
         self::assertSame('', $client->getResponse()->getContent());
 
@@ -190,7 +190,7 @@ final class NoteApiTest extends WebTestCase
         $client->jsonRequest('PUT', '/api/notes/99999', ['title' => 'hello', 'content' => '', 'version' => 1]);
         self::assertResponseStatusCodeSame(404);
 
-        $client->request('DELETE', '/api/notes/99999', server: ['HTTP_IF_MATCH' => '"1"']);
+        $client->request('DELETE', '/api/notes/99999', server: ['HTTP_X_NOTE_VERSION' => '1']);
         self::assertResponseStatusCodeSame(404);
     }
 
@@ -200,10 +200,10 @@ final class NoteApiTest extends WebTestCase
         $client->jsonRequest('POST', '/api/notes', ['title' => 'Delete me']);
         $created = $this->json();
         $id = $created['id'];
-        $client->request('DELETE', '/api/notes/'.$id, server: ['HTTP_IF_MATCH' => '"'.$created['version'].'"']);
+        $client->request('DELETE', '/api/notes/'.$id, server: ['HTTP_X_NOTE_VERSION' => (string) $created['version']]);
         self::assertResponseStatusCodeSame(204);
         self::assertSame('', $client->getResponse()->getContent());
-        $client->request('DELETE', '/api/notes/'.$id, server: ['HTTP_IF_MATCH' => '"'.$created['version'].'"']);
+        $client->request('DELETE', '/api/notes/'.$id, server: ['HTTP_X_NOTE_VERSION' => (string) $created['version']]);
         self::assertResponseStatusCodeSame(404);
 
         $client->request('PATCH', '/api/notes/'.$id);
@@ -221,13 +221,19 @@ final class NoteApiTest extends WebTestCase
         $client->request('DELETE', '/api/notes/'.$created['id']);
         self::assertResponseStatusCodeSame(428);
 
+        $client->request('DELETE', '/api/notes/'.$created['id'], server: ['HTTP_X_NOTE_VERSION' => 'W/"1"']);
+        self::assertResponseStatusCodeSame(400);
+
+        $client->request('DELETE', '/api/notes/'.$created['id'], server: ['HTTP_X_NOTE_VERSION' => '"1"']);
+        self::assertResponseStatusCodeSame(400);
+
         $client->jsonRequest('PUT', '/api/notes/'.$created['id'], [
             'title' => 'Изменённая', 'content' => '', 'version' => $created['version'],
         ]);
         $updated = $this->json();
 
         $client->request('DELETE', '/api/notes/'.$created['id'], server: [
-            'HTTP_IF_MATCH' => '"'.$created['version'].'"',
+            'HTTP_X_NOTE_VERSION' => (string) $created['version'],
         ]);
         self::assertResponseStatusCodeSame(409);
 
@@ -236,7 +242,7 @@ final class NoteApiTest extends WebTestCase
         self::assertSame('Изменённая', $this->json()['title']);
 
         $client->request('DELETE', '/api/notes/'.$created['id'], server: [
-            'HTTP_IF_MATCH' => '"'.$updated['version'].'"',
+            'HTTP_X_NOTE_VERSION' => (string) $updated['version'],
         ]);
         self::assertResponseStatusCodeSame(204);
     }

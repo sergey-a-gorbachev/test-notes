@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\EventSubscriber;
 
 use App\Domain\Exception\NoteNotFoundException;
+use App\Domain\Exception\NoteVersionConflictException;
 use Doctrine\ORM\OptimisticLockException;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -28,7 +29,7 @@ final class ApiExceptionSubscriber
             $event->setResponse(new JsonResponse(['error' => 'Заметка не найдена.'], Response::HTTP_NOT_FOUND));
             return;
         }
-        if ($exception instanceof OptimisticLockException) {
+        if ($exception instanceof OptimisticLockException || $exception instanceof NoteVersionConflictException) {
             $event->setResponse(new JsonResponse([
                 'error' => 'Заметка уже изменена. Получите актуальную версию и повторите попытку.',
             ], Response::HTTP_CONFLICT));
@@ -60,7 +61,7 @@ final class ApiExceptionSubscriber
                 Response::HTTP_UNSUPPORTED_MEDIA_TYPE => 'Неподдерживаемый тип содержимого.',
                 Response::HTTP_PRECONDITION_REQUIRED => 'Для операции необходимо указать актуальную версию.',
             ];
-            if ($status === Response::HTTP_BAD_REQUEST && str_contains($exception->getMessage(), 'If-Match')) {
+            if ($status === Response::HTTP_BAD_REQUEST && str_contains($exception->getMessage(), 'X-Note-Version')) {
                 $messages[$status] = $exception->getMessage();
             }
             $event->setResponse(new JsonResponse(
